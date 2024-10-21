@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx'; // for Excel file handling
 import 'material-icons/iconfont/material-icons.css';
 
-
 export default function Table({ Deletuser, UpdatedUser }) {
     const [data, setData] = useState([]);
     const [search, setSearch] = useState('');
@@ -13,7 +12,7 @@ export default function Table({ Deletuser, UpdatedUser }) {
             try {
                 const user = await axios.get('http://localhost:8080/api/get');
                 const response = user.data;
-                setData(response);
+                setData(response.users); // Ensure we set the correct data structure
             } catch (error) {
                 console.log(error);
             }
@@ -22,7 +21,7 @@ export default function Table({ Deletuser, UpdatedUser }) {
     }, []);
 
     // Filter data based on search query
-    const filteredData = data.users?.filter(user => {
+    const filteredData = data?.filter(user => {
         return (
             user.name.toLowerCase().includes(search.toLowerCase()) ||
             user.fathername.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,13 +43,18 @@ export default function Table({ Deletuser, UpdatedUser }) {
                 const contacts = parseVCF(vcfData);
     
                 // Send the contacts to the server
-                try {
-                    const response = await axios.post('http://localhost:8080/api/create', { contacts });
-                    console.log(response.data); // Handle success response here
-                    // Optionally, update the state to include newly added contacts
-                    setData((prevData) => ({ users: [...prevData.users, ...contacts] }));
-                } catch (error) {
-                    console.error("Error saving contacts:", error);
+                if (contacts.length > 0) {
+                    const { name, fathername, email, phone } = contacts[0]; // Use the first contact's details
+                    try {
+                        const response = await axios.post('http://localhost:8080/api/creat', { name, fathername, email, phone, contacts });
+                        console.log(response.data); // Handle success response here
+                        // Optionally, update the state to include newly added contacts
+                        setData((prevData) => [...prevData, ...contacts]);
+                    } catch (error) {
+                        console.error("Error saving contacts:", error);
+                    }
+                } else {
+                    console.error("No valid contacts found in VCF file.");
                 }
             };
     
@@ -61,19 +65,19 @@ export default function Table({ Deletuser, UpdatedUser }) {
         }
     };
     
-
-    // Function to parse VCF file content
     const parseVCF = (vcfData) => {
         const lines = vcfData.split('\n');
         const contacts = [];
         let currentContact = {};
-
+    
         lines.forEach(line => {
             line = line.trim();
             if (line.startsWith('BEGIN:VCARD')) {
                 currentContact = {}; // Start a new contact
             } else if (line.startsWith('END:VCARD')) {
-                contacts.push(currentContact); // Save the contact
+                if (currentContact.name && currentContact.email && currentContact.phone) {
+                    contacts.push(currentContact); // Only push valid contacts
+                }
             } else if (line.startsWith('FN:')) { // Full Name
                 currentContact.name = line.substring(3);
             } else if (line.startsWith('N:')) { // Last Name
@@ -85,10 +89,10 @@ export default function Table({ Deletuser, UpdatedUser }) {
                 currentContact.phone = line.substring(4);
             }
         });
-
+    
         return contacts;
     };
-
+    
     // Export contacts to Excel
     const handleExport = () => {
         const ws = XLSX.utils.json_to_sheet(filteredData);
@@ -120,11 +124,11 @@ export default function Table({ Deletuser, UpdatedUser }) {
                     <div className="table-title">
                         <div className="row">
                             <div className="col-sm-6">
-                                <h2>Manage <b>Employees</b></h2>
+                                <h2>Manage <b>Contact</b></h2>
                             </div>
                             <div className="col-sm-6">
                                 <a href="#" className="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-                                    <i className="material-icons">&#xE147;</i> <span>Add New Employee</span>
+                                    <i className="material-icons">&#xE147;</i> <span>Add New Contact</span>
                                 </a>
                             </div>
                         </div>

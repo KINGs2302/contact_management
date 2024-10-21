@@ -16,10 +16,10 @@ const contactSchema = new Schema({
     },
     phone: {
         type: String,
-        required: true
+        required: true,
     }
 }, { timestamps: true });
 
 const ContactModel = mongoose.model('Contact', contactSchema);
 
-module.exports = ContactModel; // Use CommonJS syntax
+module.exports = ContactModel;
